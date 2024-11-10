@@ -18,6 +18,18 @@ def string_to_color_code(input_string):
     return color_code
 
 
+def save_plots(cor, aux, verbose=False):
+    if 'plots' not in st.session_state:
+        st.session_state.plots = {}
+
+    primary = ",".join(sorted(cor))
+    secondary = ",".join(sorted(aux))
+    st.session_state.plots[f'plot-{primary}-{secondary}'] = {'primary': cor, 'secondary': aux}
+
+    if verbose:
+        st.info(f'Plot saved {primary}-{secondary}')
+
+
 @st.cache_data
 def load_data():
     # Generate sample data
@@ -47,9 +59,8 @@ def configure_plot(primary_metrics, secondary_metrics, dataframe, source, crossh
     # Create Figure
     fig = figure(width=width, height=height, x_axis_type="datetime", title=title1)
     fig.extra_y_ranges = {"Secondary-Axis": Range1d(start=secondary_axis_min, end=secondary_axis_max)}
-    fig.add_layout(LinearAxis(y_range_name='Secondary-Axis', axis_label='secondary'), 'right')
+    fig.add_layout(LinearAxis(y_range_name='Secondary-Axis'), 'right')
 
-    # Add lines to Fiture
     # Primary Axis
     for m in reversed(primary_metrics):
         l1 = fig.line('Date', m, source=source, line_width=2, color=string_to_color_code(m), legend_label=m)
@@ -64,6 +75,21 @@ def configure_plot(primary_metrics, secondary_metrics, dataframe, source, crossh
     # Add tooltips
     hover1 = HoverTool(tooltips=tooltip1, formatters={'@Date': 'datetime'}, mode='vline', renderers=[l1])
     fig.add_tools(hover1)
+
+    # Adjust legend options
+    fig.legend.location = "bottom_center"  # Options include "top_center", "bottom_center", etc.
+    fig.legend.orientation = "horizontal"  # This makes the legend items align horizontally
+    fig.legend.background_fill_color = "white"
+    fig.legend.background_fill_alpha = 0.6
+    fig.legend.label_text_font = "arial"
+    fig.legend.label_standoff = 1  # Distance between label and glyph
+    fig.legend.spacing = 1  # Spacing between entries
+    fig.legend.padding = 1  # Padding inside the legend
+    fig.legend.margin = 1  # Margin around the legend
+    fig.legend.label_text_font_size = "8pt"
+    fig.legend.label_text_color = "black"
+    fig.title.text_font_size = '9pt'
+    # fig.legend.border_line_color = "black"
 
     # Add crosshair tools
     fig.add_tools(crosshair)

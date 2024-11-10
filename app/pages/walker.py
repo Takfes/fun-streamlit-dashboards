@@ -10,17 +10,13 @@ def get_pyg_renderer() -> "StreamlitRenderer":
     return StreamlitRenderer(df)
 
 
-# Configure page layout
-st.set_page_config(layout="wide")
+def main():
+    # Configure page layout
+    st.set_page_config(layout="wide")
 
-# Option 1
-renderer = get_pyg_renderer()
-renderer.explorer()
+    # Option 1
+    renderer = get_pyg_renderer()
+    renderer.explorer()
 
-# # Option 2
-# import pygwalker as pyg
-# import streamlit.components.v1 as components
 
-# df = pd.DataFrame(load_data())
-# pyg_html = pyg.walk(df, return_html=True)
-# components.html(pyg_html, height=1000, scrolling=True)
+main()
