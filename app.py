@@ -5,7 +5,6 @@ from bokeh.layouts import column, row
 from bokeh.models import ColumnDataSource, CrosshairTool, HoverTool, LinearAxis, Range1d
 from bokeh.plotting import figure
 
-st.set_page_config(layout="wide")
 
 def string_to_color_code(input_string):
     import hashlib
@@ -18,6 +17,7 @@ def string_to_color_code(input_string):
     # Extract the first 6 digits of the hash to create a color code
     color_code = '#' + hash_digest[:6]
     return color_code
+
 
 @st.cache_data
 def load_data():
@@ -38,15 +38,51 @@ def load_data():
     }
     return data
 
+
+def configure_plot(primary_metrics, secondary_metrics, dataframe, source, crosshair, width=750, height=250):
+    # Chart titles
+    title1 = f"{primary_metrics} vs {secondary_metrics}"
+    secondary_axis_min = dataframe[secondary_metrics].min(axis=1).min()
+    secondary_axis_max = dataframe[secondary_metrics].max(axis=1).max()
+
+    # Create Figure
+    fig = figure(width=width, height=height, x_axis_type="datetime", title=title1)
+    fig.extra_y_ranges = {"Secondary-Axis": Range1d(start=secondary_axis_min, end=secondary_axis_max)}
+    fig.add_layout(LinearAxis(y_range_name='Secondary-Axis', axis_label='secondary'), 'right')
+
+    # Add lines to Fiture
+    # Primary Axis
+    for m in reversed(primary_metrics):
+        l1 = fig.line('Date', m, source=source, line_width=2, color=string_to_color_code(m), legend_label=m)
+    # Secondary Axis
+    for m in reversed(secondary_metrics):
+        fig.line('Date', m, source=source, line_width=2, color=string_to_color_code(m), legend_label=m)
+
+    # Prepare tooltips
+    tooltip1 = [(x, f"@{x}") for x in primary_metrics + secondary_metrics]
+    tooltip1.insert(0, ('Date', '@Date{%F}'))
+
+    # Add tooltips
+    hover1 = HoverTool(tooltips=tooltip1, formatters={'@Date': 'datetime'}, mode='vline', renderers=[l1])
+    fig.add_tools(hover1)
+
+    # Add crosshair tools
+    fig.add_tools(crosshair)
+    return fig
+
+
 def main():
-    
+    # Configure page layout
+    st.set_page_config(layout="wide")
+
     # Load data
     data = load_data()
     df = pd.DataFrame(data)
-    
+
+    # Get list of metrics for the sidebar
     metrics_list = df.columns.tolist()[1:]
     source = ColumnDataSource(data)
-    
+
     # Sidebar
     selected_metric1 = st.sidebar.multiselect('Select Primary Metric for Plot 1', metrics_list, default='Metric1')
     selected_metric2 = st.sidebar.multiselect('Select Secondary Metric for Plot 1', metrics_list, default='Metric2')
@@ -56,130 +92,10 @@ def main():
     # Establish crosshair tool
     crosshair = CrosshairTool()
 
-    # ===================================================
-    # Figure 1 
-    # ===================================================
-
-    # Chart titles
-    title1 = f"{selected_metric1} vs {selected_metric2}"
-
-    # Create Figure
-    fig1 = figure(width=800, height=250, x_axis_type="datetime", title=title1)
-    fig1.extra_y_ranges = {"Secondary-Axis": Range1d(start=min(data['Metric2']), end=max(data['Metric2']))}
-    fig1.add_layout(LinearAxis(y_range_name='Secondary-Axis', axis_label='secondary'), 'right')
-
-    # Add lines to Fiture 1. 
-    # Primary Axis
-    for m in reversed(selected_metric1):
-        l1 = fig1.line('Date', m, source=source, line_width=2, color=string_to_color_code(m), legend_label=m)
-    # Secondary Axis
-    for m in reversed(selected_metric2):
-        fig1.line('Date', m, source=source, line_width=2, color=string_to_color_code(m), legend_label=m)
-    
-    # Prepare tooltips
-    tooltip1 = [(x, f"@{x}") for x in selected_metric1 + selected_metric2]
-    tooltip1.insert(0, ('Date', '@Date{%F}'))
-    
-    # Add tooltips
-    hover1 = HoverTool(tooltips=tooltip1, formatters={'@Date': 'datetime'}, mode='vline', renderers=[l1])
-    fig1.add_tools(hover1)
-    
-    # Add crosshair tools
-    fig1.add_tools(crosshair)
-
-    # ===================================================
-    # Figure 2
-    # ===================================================
-
-    # Chart titles
-    title2 = f"{selected_metric3} vs {selected_metric4}"
-    
-    # Create Figure 2.
-    fig2 = figure(width=800, height=250, x_axis_type="datetime", title=title2)    
-    fig2.extra_y_ranges = {"Secondary-Axis": Range1d(start=min(data['Metric4']), end=max(data['Metric4']))}
-    fig2.add_layout(LinearAxis(y_range_name='Secondary-Axis', axis_label='secondary'), 'right')
-    
-    # Add lines to Fiture 2.
-    # Primary Axis
-    for m in reversed(selected_metric3):
-        l3 = fig2.line('Date', m, source=source, line_width=2, color=string_to_color_code(m), legend_label=m)
-    # Secondary Axis
-    for m in reversed(selected_metric4):
-        fig2.line('Date', m, source=source, line_width=2, color=string_to_color_code(m), legend_label=m)
-    
-    # Prepare tooltips
-    tooltip2 = [(x, f"@{x}") for x in selected_metric3 + selected_metric4]
-    tooltip2.insert(0, ('Date', '@Date{%F}'))
-    
-    # Add tooltips
-    hover2 = HoverTool(tooltips=tooltip2, formatters={'@Date': 'datetime'}, mode='vline', renderers=[l3])
-    fig2.add_tools(hover2)
-    
-    # Add crosshair tools
-    fig2.add_tools(crosshair)
-
-    # ===================================================
-    # Create Figures in Parallel
-    # ===================================================
-
-    # # Chart titles
-    # title1 = f"{selected_metric1} vs {selected_metric2}"
-    # title2 = f"{selected_metric3} vs {selected_metric4}"
-    
-    # # Create Figure 1.
-    # fig1 = figure(width=800, height=250, x_axis_type="datetime", title=title1)
-    # fig1.extra_y_ranges = {"Secondary-Axis": Range1d(start=min(data['Metric2']), end=max(data['Metric2']))}
-    # fig1.add_layout(LinearAxis(y_range_name='Secondary-Axis', axis_label='secondary'), 'right')
-    
-    # # Create Figure 2.
-    # fig2 = figure(width=800, height=250, x_axis_type="datetime", title=title2)    
-    # fig2.extra_y_ranges = {"Secondary-Axis": Range1d(start=min(data['Metric4']), end=max(data['Metric4']))}
-    # fig2.add_layout(LinearAxis(y_range_name='Secondary-Axis', axis_label='secondary'), 'right')
-    
-    # # Add lines : Fiture 1. | Primary Axis
-    # for m in reversed(selected_metric1):
-    #     l1 = fig1.line('Date', m, source=source, line_width=2, color=string_to_color_code(m), legend_label=m)
-    # # Add lines : Fiture 1. | Secondary Axis
-    # for m in reversed(selected_metric2):
-    #     fig1.line('Date', m, source=source, line_width=2, color=string_to_color_code(m), legend_label=m)
-        
-    # # Add lines : Fiture 2. | Primary Axis
-    # for m in reversed(selected_metric3):
-    #     l3 = fig2.line('Date', m, source=source, line_width=2, color=string_to_color_code(m), legend_label=m)
-    # # Add lines : Fiture 2. | Secondary Axis
-    # for m in reversed(selected_metric4):
-    #     fig2.line('Date', m, source=source, line_width=2, color=string_to_color_code(m), legend_label=m)
-    
-    # # Prepare tooltips
-    # tooltip1 = [(x, f"@{x}") for x in selected_metric1 + selected_metric2]
-    # tooltip1.insert(0, ('Date', '@Date{%F}'))
-    
-    # tooltip2 = [(x, f"@{x}") for x in selected_metric3 + selected_metric4]
-    # tooltip2.insert(0, ('Date', '@Date{%F}'))
-    
-    # # Add tooltips
-    # hover1 = HoverTool(tooltips=tooltip1, formatters={'@Date': 'datetime'}, mode='vline', renderers=[l1])
-    # hover2 = HoverTool(tooltips=tooltip2, formatters={'@Date': 'datetime'}, mode='vline', renderers=[l3])
-    # fig1.add_tools(hover1)
-    # fig2.add_tools(hover2)
-    
-    # # Add crosshair tools
-    # crosshair = CrosshairTool()
-    # fig1.add_tools(crosshair)
-    # fig2.add_tools(crosshair)
-
-    # ===================================================
-    # Display Plots
-    # ===================================================
-
-    # # Layout plots side by side
-    # layout = column(fig1, fig2)
-    # st.bokeh_chart(layout)
-    
-    # ===================================================
     # Display Plots in 2x3 Grid
-    # ===================================================
-    
+    fig1 = configure_plot(selected_metric1, selected_metric2, df, source, crosshair)
+    fig2 = configure_plot(selected_metric3, selected_metric4, df, source, crosshair)
+
     width_allocation = [0.9, 0.1]
     with st.container():
         col1, col2 = st.columns(width_allocation)
@@ -187,15 +103,15 @@ def main():
             layout = column(fig1, fig2)
             st.bokeh_chart(layout)    
         with col2:
-            st.button('💾', key='save_plot_1')
-    
+            st.button('💾 Save', key='save_plot_1')
+
     with st.container():
         col3, col4 = st.columns(width_allocation)
         with col3:
             pass
         with col4:
-            st.button('💾', key='save_plot_2')
+            st.button('💾 Save', key='save_plot_2')
 
-    
+
 if __name__ == "__main__":
     main()
