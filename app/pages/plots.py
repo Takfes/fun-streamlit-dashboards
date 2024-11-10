@@ -70,7 +70,6 @@ def configure_plot(primary_metrics, secondary_metrics, dataframe, source, crossh
     fig.add_tools(crosshair)
     return fig
 
-
 def main():
     # Configure page layout
     st.set_page_config(layout="wide")
@@ -113,5 +112,4 @@ def main():
             st.button('💾 Save', key='save_plot_2')
 
 
-if __name__ == "__main__":
-    main()
+main()
